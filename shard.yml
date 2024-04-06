@@ -1,0 +1,13 @@
+name: discord-music
+version: 0.1.0
+
+authors:
+  - Wilson <wtovaragudelo@gmail.com>
+
+targets:
+  discord-music:
+    main: src/discord-music.cr
+
+crystal: '>= 1.11.2'
+
+license: MIT
