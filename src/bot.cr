@@ -31,7 +31,7 @@ module DiscordMusic
       end
     end
 
-    def start_heartbeat(heartbeat_interval : Int32)
+    private def start_heartbeat(heartbeat_interval : Int32)
       Log.info { "starting heartbeat" }
 
       spawn do
@@ -46,7 +46,7 @@ module DiscordMusic
       end
     end
 
-    def identify
+    private def identify
       return if @already_identified
 
       intents = DISCORD_INTENTS.map { |key, value| value }.sum
@@ -72,7 +72,7 @@ module DiscordMusic
       exit(1)
     end
 
-    def process_event(event : Event)
+    private def process_event(event : Event)
       # event_name = event.t
     end
 
