@@ -1,6 +1,13 @@
-# TODO: Write documentation for `Discord::Music`
-module Discord::Music
-  VERSION = "0.1.0"
+require "dotenv"
+require "log"
 
-  # TODO: Put your code here
+Dotenv.load
+
+require "./bot.cr"
+
+module DiscordMusic
+  VERSION = "0.1.0"
 end
+
+bot = DiscordMusic::Bot.new
+bot.start

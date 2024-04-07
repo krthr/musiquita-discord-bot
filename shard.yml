@@ -8,6 +8,10 @@ targets:
   discord-music:
     main: src/discord-music.cr
 
-crystal: '>= 1.11.2'
+crystal: ">= 1.11.2"
 
 license: MIT
+
+dependencies:
+  dotenv:
+    github: gdotdesign/cr-dotenv
