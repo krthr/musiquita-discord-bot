@@ -1,6 +1,7 @@
 require "./client.cr"
 require "./constants.cr"
 require "./events.cr"
+require "./mapping/*"
 
 module DiscordMusic
   WS_BASE_URL = "wss://gateway.discord.gg/?v=10&encoding=json"
@@ -9,127 +10,112 @@ module DiscordMusic
     Log = ::Log.for("bot")
 
     @client : Client
-    @already_identified = false
 
-    getter discord_servers = Hash(String, Events::GuildCreate).new
-    getter chat_messages_history = Array(Events::MessageCreate).new
+    @heartbeat_interval = 1000_u32
+    @send_heartbeats = false
+    @sequence : Int64? = nil 
+
+    getter messages_history = [] of Event
 
     def initialize
       @client = Client.new(URI.parse(WS_BASE_URL))
+      @client.on_message(&->on_message(Event))
 
-      @client.on opcode: 10 do |event|
-        self.start_heartbeat(event.data.not_nil!["heartbeat_interval"].not_nil!.as_i)
-      end
-
-      @client.on opcode: 11 do |event|
-        self.identify
-      end
-
-      @client.on opcode: 9 do |event|
-        Log.info { "Invalid session" }
-        self.stop
-      end
-
-      @client.on opcode: 0 do |event|
-        self.process_event(event)
-      end
-    end
-
-    private def start_heartbeat(heartbeat_interval : Int32)
-      Log.info { "starting heartbeat" }
-
-      spawn do
-        loop do
-          Log.info { "Hearbeating" }
-
-          payload = {op: 1, d: nil}
-          @client.send(payload.to_json)
-
-          sleep(heartbeat_interval / 1000)
-        end
-      end
-    end
-
-    private def identify
-      return if @already_identified
-
-      intents = DISCORD_INTENTS.map { |key, value| value }.sum
-      Log.info { "identifying with intents=#{intents}" }
-
-      payload = {
-        op: 2,
-        d:  {
-          token:      ENV["BOT_TOKEN"],
-          properties: {os: "macos", browser: "Musiquita", device: "Musiquita"},
-          presence:   {status: "online", afk: false},
-          intents:    intents,
-        },
-      }
-
-      @client.send(payload.to_json)
-      @already_identified = true
-    end
-
-    private def register_guild(data : Events::GuildCreate)
-      Log.info { "Registering guild with id=#{data.id} name=\"#{data.name}\"" }
-      @discord_servers[data.id] = data
-    end
-
-    private def process_message(data : Events::MessageCreate)
-      Log.info { "Processing message=\"#{data.content}\" by=#{data.member}" }
-      @chat_messages_history << data
-
-      if data.content.includes?("reproduce")
-        guild_id = data.guild_id
-        author_id = data.author.not_nil!.id
-        voice_channel_id = @discord_servers[guild_id]
-          .not_nil!
-          .voice_states
-          .find! { |voice_state| voice_state.user_id == author_id }
-          .channel_id
-
-        payload = {
-          op: 4,
-          d:  {
-            guild_id:   guild_id,
-            channel_id: voice_channel_id,
-            self_mute:  false,
-            self_deaf:  false,
-          },
-        }
-
-        @client.send(payload.to_json)
-
-        # TODO: Implement Audio WS + UDP Client
-      end
-    end
-
-    private def process_event(event : Event)
-      Log.info { "Processing event event_type=#{event.event_type}" }
-
-      json_data = event.data.nil? ? nil : event.data.to_json
-
-      case event.event_type
-      when "GUILD_CREATE"
-        self.register_guild(Events::GuildCreate.from_json(json_data.not_nil!))
-      when "MESSAGE_CREATE"
-        self.process_message(Events::MessageCreate.from_json(json_data.not_nil!))
-      when "VOICE_SERVER_UPDATE"
-        Log.info { Events::VoiceServerUpdate.from_json(json_data.not_nil!) }
-      when "VOICE_STATE_UPDATE"
-        # TODO:
-      else
-      end
-    end
-
-    def stop
-      Log.info { "stopping bot" }
-      @client.close
-      exit(1)
+      self.setup_heartbeats
     end
 
     def start
       @client.run
     end
+
+    def close
+      Log.info { "Stoping" }
+      @client.close
+      exit(0)
+    end
+
+    private def on_message(event : Event)
+      Log.info { "Handling new event: #{event}" }
+
+      case event.opcode
+      when OP_HELLO
+        payload = HelloPayload.from_json(event.data)
+        self.handle_hello(payload.heartbeat_interval)
+      when OP_HEARTBEAT_ACK
+        # TODO: 
+      when OP_INVALID_SESSION
+        # TODO: 
+      when OP_DISPATCH
+        self.handle_dispatch(event.event_type.not_nil!, event.data)
+      else
+      end
+
+      seq = event.sequence
+      @sequence = seq if seq
+      
+      @messages_history << event
+    end
+
+    private def handle_hello(heartbeat_interval : Float32)
+      @heartbeat_interval = heartbeat_interval
+      @send_heartbeats = true
+
+      self.identify
+    end
+
+    private def identify
+      intents = DISCORD_INTENTS.map { |key, value| value }.sum
+      Log.info { "identifying with intents=#{intents}" }
+
+      payload = IdentifyPayload.new(
+        token: ENV["BOT_TOKEN"],
+        properties: {os: "macos", browser: "Musiquita", device: "Musiquita"},
+        presence: {status: "online", afk: false},
+        intents: intents
+      )
+
+      @client.send({op: OP_IDENTIFY, d: payload}.to_json)
+    end
+
+    private def handle_dispatch(event_type : String, data : IO::Memory)
+      call_event dispatch, {event_type, data}
+
+      # TODO: 
+    end
+
+    private def setup_heartbeats
+      spawn do
+        loop do
+          if @send_heartbeats
+            Log.info { "Sending heartbeat" }
+            seq = @sequence || 0
+            @client.send({op: OP_HEARTBEAT, d: seq}.to_json)          
+          end
+
+          sleep @heartbeat_interval.milliseconds
+        end
+      end
+    end
+
+    # :nodoc:
+    macro call_event(name, payload)
+      @on_{{name}}_handlers.try &.each do |handler|
+        begin
+          handler.call({{payload}})
+        rescue ex
+          Log.error(exception: ex) { "An exception occurred in a user-defined event handler!" }
+          Log.error { ex.inspect_with_backtrace }
+        end
+      end
+    end
+
+    # :nodoc:
+    macro event(name, payload_type)
+      def on_{{name}}(&handler : {{payload_type}} ->)
+        (@on_{{name}}_handlers ||= [] of {{payload_type}} ->) << handler
+      end
+    end
+
+    event dispatch, {String, IO::Memory}
   end
 end

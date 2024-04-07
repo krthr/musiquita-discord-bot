@@ -11,8 +11,7 @@ bot = DiscordMusic::Bot.new
 
 get "/" do
   {
-    discord_servers:       bot.discord_servers,
-    chat_messages_history: bot.chat_messages_history,
+    messages_history: bot.messages_history,
   }.to_json
 end
 

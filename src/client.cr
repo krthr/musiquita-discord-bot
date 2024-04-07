@@ -3,8 +3,25 @@ require "json"
 require "log"
 
 module DiscordMusic
+  # The struct `Event` represents the structure of an
+  # [gateway event](https://discord.com/developers/docs/topics/gateway-events) received from Discord.
+  # It includes the opcode, sequence, data, and event type.
+  #
+  # More info [here](https://discord.com/developers/docs/topics/gateway-events#payload-structure)
   struct Event
     include JSON::Serializable
+
+    module DataConverter
+      def self.from_json(parser)
+        data = IO::Memory.new
+        JSON.build(data) { |builder| parser.read_raw(builder) }
+        data.rewind
+      end
+
+      def self.to_json(value, builder)
+        builder.raw(value.to_s)
+      end
+    end
 
     @[JSON::Field(key: "op")]
     getter opcode : Int64
@@ -12,19 +29,22 @@ module DiscordMusic
     @[JSON::Field(key: "s")]
     getter sequence : Int64?
 
-    @[JSON::Field(key: "d")]
-    getter data : JSON::Any?
+    @[JSON::Field(key: "d", converter: DiscordMusic::Event::DataConverter)]
+    getter data : IO::Memory
 
     @[JSON::Field(key: "t")]
     getter event_type : String?
 
+    # Custom inspect method for better debugging and logging.
     def inspect(io : IO)
       io << "Event(@opcode="
-      io << opcode.inspect(io)
+      io << opcode
       io << " @sequence="
-      sequence.inspect(io)
+      io << sequence
       io << " @event_type="
-      event_type.inspect(io)
+      io << event_type
+      io << " @data="
+      io << data.to_s
       io << ')'
     end
   end
@@ -33,14 +53,23 @@ module DiscordMusic
     Log = ::Log.for("client")
 
     @ws : HTTP::WebSocket
-    @events_handler = {} of Int64 => Event ->
 
     def initialize(uri : URI)
       @ws = HTTP::WebSocket.new(uri)
+
+      @ws.on_close do
+        Log.info { "Websocket connection closed" }
+      end
+    end
+
+    def on_message(&handler : Event ->)
+      @ws.on_message do |message|
+        payload = Event.from_json(message)
+        handler.call(payload)
+      end
     end
 
     def close
-      Log.info { "closing connection" }
       @ws.close
     end
 
@@ -48,25 +77,8 @@ module DiscordMusic
       @ws.send(message)
     end
 
-    def on(opcode : Int64, &handler : Event ->)
-      @events_handler[opcode] = handler
-    end
-
     def run
-      Log.info { "starting websocket" }
-
-      @ws.on_message do |message|
-        payload = Event.from_json(message)
-
-        Log.info { "received new message: #{payload}" }
-
-        if @events_handler[payload.opcode]?
-          @events_handler[payload.opcode].call(payload)
-        else
-          Log.error { "handler not found for opcode=#{payload.opcode}" }
-        end
-      end
-
+      Log.info { "Starting websocket" }
       @ws.run
     end
   end
