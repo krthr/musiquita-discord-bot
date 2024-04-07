@@ -88,7 +88,19 @@ module DiscordMusic
           .find! { |voice_state| voice_state.user_id == author_id }
           .channel_id
 
-        # TODO: start audio connection
+        payload = {
+          op: 4,
+          d:  {
+            guild_id:   guild_id,
+            channel_id: voice_channel_id,
+            self_mute:  false,
+            self_deaf:  false,
+          },
+        }
+
+        @client.send(payload.to_json)
+
+        # TODO: Implement Audio WS + UDP Client
       end
     end
 
@@ -102,6 +114,10 @@ module DiscordMusic
         self.register_guild(Events::GuildCreate.from_json(json_data.not_nil!))
       when "MESSAGE_CREATE"
         self.process_message(Events::MessageCreate.from_json(json_data.not_nil!))
+      when "VOICE_SERVER_UPDATE"
+        Log.info { Events::VoiceServerUpdate.from_json(json_data.not_nil!) }
+      when "VOICE_STATE_UPDATE"
+        # TODO:
       else
       end
     end

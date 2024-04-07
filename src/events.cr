@@ -87,5 +87,13 @@ module DiscordMusic
       getter status : String
       getter user : User
     end
+
+    struct VoiceServerUpdate
+      include JSON::Serializable
+
+      getter token : String
+      getter guild_id : String
+      getter endpoint : String?
+    end
   end
 end
