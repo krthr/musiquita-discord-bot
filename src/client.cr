@@ -44,7 +44,8 @@ module DiscordMusic
       io << " @event_type="
       io << event_type
       io << " @data="
-      io << data.to_s
+      io << data.to_s[0..30]
+      io << "...}"
       io << ')'
     end
   end
@@ -56,10 +57,7 @@ module DiscordMusic
 
     def initialize(uri : URI)
       @ws = HTTP::WebSocket.new(uri)
-
-      @ws.on_close do
-        Log.info { "Websocket connection closed" }
-      end
+      @ws.on_close { Log.info { "Websocket connection closed" } }
     end
 
     def on_message(&handler : Event ->)

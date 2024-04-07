@@ -1,7 +1,7 @@
 require "./client.cr"
 require "./constants.cr"
-require "./events.cr"
 require "./mapping/*"
+require "./cache.cr"
 
 module DiscordMusic
   WS_BASE_URL = "wss://gateway.discord.gg/?v=10&encoding=json"
@@ -9,11 +9,12 @@ module DiscordMusic
   class Bot
     Log = ::Log.for("bot")
 
+    getter cache = Cache.new
     @client : Client
 
     @heartbeat_interval = 1000_u32
     @send_heartbeats = false
-    @sequence : Int64? = nil 
+    @sequence : Int64? = nil
 
     getter messages_history = [] of Event
 
@@ -42,9 +43,9 @@ module DiscordMusic
         payload = HelloPayload.from_json(event.data)
         self.handle_hello(payload.heartbeat_interval)
       when OP_HEARTBEAT_ACK
-        # TODO: 
+        # TODO:
       when OP_INVALID_SESSION
-        # TODO: 
+        # TODO:
       when OP_DISPATCH
         self.handle_dispatch(event.event_type.not_nil!, event.data)
       else
@@ -52,7 +53,7 @@ module DiscordMusic
 
       seq = event.sequence
       @sequence = seq if seq
-      
+
       @messages_history << event
     end
 
@@ -74,13 +75,32 @@ module DiscordMusic
         intents: intents
       )
 
-      @client.send({op: OP_IDENTIFY, d: payload}.to_json)
+      @client.send IdentifyEvent.new(payload).to_json
     end
 
     private def handle_dispatch(event_type : String, data : IO::Memory)
-      call_event dispatch, {event_type, data}
+      case event_type
+      when "READY"
+        payload = ReadyPayload.from_json(data)
+      when "GUILD_CREATE"
+        payload = GuildCreatePayload.from_json(data)
+        guild = Guild.new(payload)
 
-      # TODO: 
+        @cache.cache guild
+
+        payload.channels.each do |channel|
+          @cache.cache channel
+        end
+      when "MESSAGE_CREATE"
+        # TODO:
+      when "PRESENCE_UPDATE"
+        # TODO:
+      when "VOICE_STATE_UPDATE"
+        # TODO
+      when "VOICE_SERVER_UPDATE"
+        # TODO
+      else
+      end
     end
 
     private def setup_heartbeats
@@ -88,34 +108,12 @@ module DiscordMusic
         loop do
           if @send_heartbeats
             Log.info { "Sending heartbeat" }
-            seq = @sequence || 0
-            @client.send({op: OP_HEARTBEAT, d: seq}.to_json)          
+            @client.send HelloEvent.new(@sequence || 0).to_json
           end
 
           sleep @heartbeat_interval.milliseconds
         end
       end
     end
-
-    # :nodoc:
-    macro call_event(name, payload)
-      @on_{{name}}_handlers.try &.each do |handler|
-        begin
-          handler.call({{payload}})
-        rescue ex
-          Log.error(exception: ex) { "An exception occurred in a user-defined event handler!" }
-          Log.error { ex.inspect_with_backtrace }
-        end
-      end
-    end
-
-    # :nodoc:
-    macro event(name, payload_type)
-      def on_{{name}}(&handler : {{payload_type}} ->)
-        (@on_{{name}}_handlers ||= [] of {{payload_type}} ->) << handler
-      end
-    end
-
-    event dispatch, {String, IO::Memory}
   end
 end
