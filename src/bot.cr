@@ -1,5 +1,6 @@
 require "./client.cr"
 require "./constants.cr"
+require "./events.cr"
 
 module DiscordMusic
   WS_BASE_URL = "wss://gateway.discord.gg/?v=10&encoding=json"
@@ -9,6 +10,9 @@ module DiscordMusic
 
     @client : Client
     @already_identified = false
+
+    getter discord_servers = Hash(String, Events::GuildCreate).new
+    getter chat_messages_history = Array(Events::MessageCreate).new
 
     def initialize
       @client = Client.new(URI.parse(WS_BASE_URL))
@@ -66,14 +70,46 @@ module DiscordMusic
       @already_identified = true
     end
 
+    private def register_guild(data : Events::GuildCreate)
+      Log.info { "Registering guild with id=#{data.id} name=\"#{data.name}\"" }
+      @discord_servers[data.id] = data
+    end
+
+    private def process_message(data : Events::MessageCreate)
+      Log.info { "Processing message=\"#{data.content}\" by=#{data.member}" }
+      @chat_messages_history << data
+
+      if data.content.includes?("reproduce")
+        guild_id = data.guild_id
+        author_id = data.author.not_nil!.id
+        voice_channel_id = @discord_servers[guild_id]
+          .not_nil!
+          .voice_states
+          .find! { |voice_state| voice_state.user_id == author_id }
+          .channel_id
+
+        # TODO: start audio connection
+      end
+    end
+
+    private def process_event(event : Event)
+      Log.info { "Processing event event_type=#{event.event_type}" }
+
+      json_data = event.data.nil? ? nil : event.data.to_json
+
+      case event.event_type
+      when "GUILD_CREATE"
+        self.register_guild(Events::GuildCreate.from_json(json_data.not_nil!))
+      when "MESSAGE_CREATE"
+        self.process_message(Events::MessageCreate.from_json(json_data.not_nil!))
+      else
+      end
+    end
+
     def stop
       Log.info { "stopping bot" }
       @client.close
       exit(1)
-    end
-
-    private def process_event(event : Event)
-      # event_name = event.t
     end
 
     def start

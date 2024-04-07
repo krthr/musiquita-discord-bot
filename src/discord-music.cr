@@ -1,13 +1,29 @@
 require "dotenv"
-require "log"
-
 Dotenv.load
 
-require "./bot.cr"
+require "kemal"
+require "log"
 
-module DiscordMusic
-  VERSION = "0.1.0"
-end
+require "./bot.cr"
+require "./version.cr"
 
 bot = DiscordMusic::Bot.new
-bot.start
+
+get "/" do
+  {
+    discord_servers:       bot.discord_servers,
+    chat_messages_history: bot.chat_messages_history,
+  }.to_json
+end
+
+spawn do
+  bot.start
+end
+
+PORT = if ENV["PORT"]?
+         ENV["PORT"].to_i
+       else
+         3333
+       end
+
+Kemal.run(PORT)

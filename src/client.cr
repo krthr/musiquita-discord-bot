@@ -13,10 +13,20 @@ module DiscordMusic
     getter sequence : Int64?
 
     @[JSON::Field(key: "d")]
-    getter data : JSON::Any
+    getter data : JSON::Any?
 
     @[JSON::Field(key: "t")]
     getter event_type : String?
+
+    def inspect(io : IO)
+      io << "Event(@opcode="
+      io << opcode.inspect(io)
+      io << " @sequence="
+      sequence.inspect(io)
+      io << " @event_type="
+      event_type.inspect(io)
+      io << ')'
+    end
   end
 
   class Client
