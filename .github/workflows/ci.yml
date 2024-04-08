@@ -8,24 +8,19 @@ jobs:
   test:
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        crystal: [latest, nightly]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - name: Install Crystal
         uses: oprypin/install-crystal@v1
         with:
-          crystal: ${{ matrix.crystal }}
+          crystal: latest
 
       - name: Download source
         uses: actions/checkout@v2
 
       - name: Install dependencies
         run: shards install
-        env:
-          SHARDS_OPTS: --ignore-crystal-version
 
       # - name: Run specs
       #   run: |
