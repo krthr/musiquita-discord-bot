@@ -43,15 +43,18 @@ module DiscordMusic
         payload = HelloPayload.from_json(event.data)
         self.handle_hello(payload.heartbeat_interval)
       when OP_HEARTBEAT_ACK
-        # TODO:
+        # TODO(2024-04-15):
       when OP_INVALID_SESSION
-        # TODO:
+        # TODO(2024-04-15):
       when OP_DISPATCH
-        self.handle_dispatch(event.event_type.not_nil!, event.data)
+        event_type = event.event_type?
+        unless event_type.nil?
+          self.handle_dispatch(event_type, event.data)
+        end
       else
       end
 
-      seq = event.sequence
+      seq = event.sequence?
       @sequence = seq if seq
 
       @messages_history << event
@@ -65,7 +68,7 @@ module DiscordMusic
     end
 
     private def identify
-      intents = DISCORD_INTENTS.map { |key, value| value }.sum
+      intents = DISCORD_INTENTS.values.sum { |value| value }
       Log.info { "identifying with intents=#{intents}" }
 
       payload = IdentifyPayload.new(
@@ -92,13 +95,13 @@ module DiscordMusic
           @cache.cache channel
         end
       when "MESSAGE_CREATE"
-        # TODO:
+        # TODO(2024-04-15):
       when "PRESENCE_UPDATE"
-        # TODO:
+        # TODO(2024-04-15):
       when "VOICE_STATE_UPDATE"
-        # TODO
+        # TODO(2024-04-15):
       when "VOICE_SERVER_UPDATE"
-        # TODO
+        # TODO(2024-04-15):
       else
       end
     end

@@ -27,22 +27,22 @@ module DiscordMusic
     getter opcode : Int64
 
     @[JSON::Field(key: "s")]
-    getter sequence : Int64?
+    getter? sequence : Int64?
 
     @[JSON::Field(key: "d", converter: DiscordMusic::Event::DataConverter)]
     getter data : IO::Memory
 
     @[JSON::Field(key: "t")]
-    getter event_type : String?
+    getter? event_type : String?
 
     # Custom inspect method for better debugging and logging.
     def inspect(io : IO)
       io << "Event(@opcode="
       io << opcode
       io << " @sequence="
-      io << sequence
+      io << sequence?
       io << " @event_type="
-      io << event_type
+      io << event_type?
       io << " @data="
       io << data.to_s[0..30]
       io << "...}"

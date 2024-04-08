@@ -1,12 +1,8 @@
-FROM ghcr.io/crystal-ameba/ameba as ameba
-WORKDIR /tmp
-COPY . .
-# RUN ameba
-
 FROM crystallang/crystal:latest-alpine as build
 WORKDIR /tmp
-COPY --from=ameba /tmp /tmp
+COPY . .
 RUN shards install
+RUN bin/ameba
 RUN crystal tool format --check
 RUN crystal build --progress --time --stats src/discord-music.cr
 

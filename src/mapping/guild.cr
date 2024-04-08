@@ -6,8 +6,8 @@ module DiscordMusic
     getter nick : String?
     getter avatar : String?
     getter roles : Array(String)
-    getter deaf : Bool
-    getter mute : Bool
+    getter? deaf : Bool
+    getter? mute : Bool
   end
 
   struct Guild
