@@ -20,10 +20,5 @@ spawn do
   bot.start
 end
 
-PORT = if ENV["PORT"]?
-         ENV["PORT"].to_i
-       else
-         3333
-       end
-
+PORT = ENV.fetch("PORT", "3333").to_i
 Kemal.run(PORT)
