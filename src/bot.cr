@@ -94,6 +94,10 @@ module DiscordMusic
         payload.channels.each do |channel|
           @cache.cache channel
         end
+
+        payload.members.each do |member|
+          @cache.cache member, guild.id
+        end
       when "MESSAGE_CREATE"
         # TODO(2024-04-15):
       when "PRESENCE_UPDATE"
