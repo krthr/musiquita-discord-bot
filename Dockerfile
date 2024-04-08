@@ -1,7 +1,7 @@
 FROM ghcr.io/crystal-ameba/ameba as ameba
 WORKDIR /tmp
 COPY . .
-// RUN ameba
+# RUN ameba
 
 FROM crystallang/crystal:latest-alpine as build
 WORKDIR /tmp
