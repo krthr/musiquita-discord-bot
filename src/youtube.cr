@@ -1,15 +1,5 @@
-COMMAND = "yt-dlp -o - -f ba -x --audio-format mp3 --no-progress %s"
+COMMAND = "yt-dlp -f ba -x --audio-format opus --audio-quality 48K --no-progress -o file.opus %s"
 
-def stream_video(id : String, output : IO)
-  Process.run(COMMAND % id, shell: true) do |process|
-    Log.info { "Sending audio content..." }
-
-    if process.output?
-      IO.copy(process.output?, output)
-    else
-      Log.error { "Process output is nil." }
-    end
-
-    Log.info { "Done." }
-  end
+def stream_video(id : String)
+  Process.run(COMMAND % id, shell: true, error: STDOUT)
 end
