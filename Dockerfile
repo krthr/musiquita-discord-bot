@@ -1,6 +1,7 @@
 FROM crystallang/crystal:latest-alpine as build
 WORKDIR /tmp
 COPY . .
+RUN apk update && apk add --no-cache opus opus-dev libsodium libsodium-dev
 RUN shards install
 RUN bin/ameba
 RUN crystal tool format --check
