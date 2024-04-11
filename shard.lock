@@ -24,6 +24,10 @@ shards:
     git: https://github.com/kemalcr/kemal.git
     version: 1.4.0
 
+  opus:
+    git: https://github.com/krthr/opus.git
+    version: 0.1.0+git.commit.8ded27a4ef42d70ab466182adc43a57d923aab43
+
   radix:
     git: https://github.com/luislavena/radix.git
     version: 0.4.1

@@ -4,3 +4,7 @@
 /.shards/
 *.dwarf
 .env
+
+*.mp3
+*.opus
+*.ogg

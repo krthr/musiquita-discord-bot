@@ -5,8 +5,9 @@ require "kemal"
 require "log"
 
 require "discordcr"
+require "opus"
 
-require "./youtube"
+require "./audio"
 require "./version"
 
 intents = (
@@ -79,56 +80,45 @@ client.on_message_create do |payload|
       next
     end
 
-    file = File.open("music.data")
-
-    # The DCAParser class handles parsing of the DCA file. It doesn't do any
-    # sending of audio data to Discord itself – that has to be done by
-    # VoiceClient.
-    parser = Discord::DCAParser.new(file)
-
-    # A proper DCA(1) file contains metadata, which is exposed by DCAParser.
-    # This metadata may be of interest, so here is some example code that uses
-    # it.
-    if metadata = parser.metadata
-      tool = metadata.dca.tool
-      client.create_message(payload.channel_id, "DCA file was created by #{tool.name}, version #{tool.version}.")
-
-      if info = metadata.info
-        client.create_message(payload.channel_id, "Song info: #{info.title} by #{info.artist}.") if info.title && info.artist
-      end
-    else
-      client.create_message(payload.channel_id, "DCA file metadata is invalid!")
-    end
+    _, video_id = payload.content.split(" ")
 
     # Set the bot as speaking (green circle). This is important and has to be
     # done at least once in every voice connection, otherwise the Discord client
     # will not know who the packets we're sending belongs to.
     voice_client.not_nil!.send_speaking(true)
 
-    client.create_message(payload.channel_id, "Playing DCA file ...")
+    client.create_message(payload.channel_id, "Playing file ...")
 
-    # For smooth audio streams Discord requires one packet every
-    # 20 milliseconds. The `every` method measures the time it takes to run the
-    # block and then sleeps 20 milliseconds minus that time before moving on to
-    # the next iteration, ensuring accurate timing.
-    #
-    # When simply reading from DCA, the time it takes to read, process and
-    # send the frame is small enough that `every` doesn't make much of a
-    # difference (in fact, some users report that it actually makes things
-    # worse). If the processing time is not negligibly slow because you're
-    # doing something else than DCA parsing, or because you're reading from a
-    # slow source, or for any other reason, then it is recommended to use
-    # `every`. Otherwise, simply using a loop and `sleep`ing `20.milliseconds`
-    # each time may suffice.
+    sample_rate = 48_000
+    channels = 2
+    encoder = Opus::Encoder.new(sample_rate, 960, channels)
+
+    client.create_message(payload.channel_id, "Getting audio from video id=#{video_id}...")
+
+    Audio.download_video(video_id)
+    input_file = File.open("#{video_id}.mp3", "r")
+
+    client.create_message(payload.channel_id, "Generating raw file ...")
+
+    audio_data = IO::Memory.new
+    Audio.audio_to_raw(input_file, audio_data, sample_rate, channels)
+
+    client.create_message(payload.channel_id, "Playing opus encoded file ...")
+
+    buffer = Bytes.new(encoder.input_length, 0)
     Discord.every(20.milliseconds) do
-      frame = parser.next_frame(reuse_buffer: true)
-      break unless frame
+      real_length = audio_data.read(buffer)
 
-      # Perform the actual sending of the frame to Discord.
-      voice_client.not_nil!.play_opus(frame)
+      if real_length.zero?
+        Log.info { "No more data to send... Closing" }
+        break
+      end
+
+      opus_encoded_data = encoder.encode(buffer)
+      voice_client.not_nil!.play_opus(opus_encoded_data)
     end
 
-    file.close
+    input_file.close
   end
 end
 

@@ -25,3 +25,7 @@ dependencies:
   discordcr:
     github: shardlab/discordcr
     branch: master
+
+  opus:
+    github: krthr/opus
+    branch: main
