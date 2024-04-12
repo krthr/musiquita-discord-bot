@@ -14,6 +14,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Generate version
+        id: generate-version
+        uses: josStorer/get-current-time@v2
+        with:
+          format: 0.0.YYYYMMDD-HHmm
+
       - name: Install Crystal
         uses: oprypin/install-crystal@v1
         with:
@@ -49,4 +55,4 @@ jobs:
         with:
           artifacts: discord-music
           makeLatest: true
-          tag: ${{ github.ref_name }}
+          tag: ${{ steps.generate-version.outputs.formattedTime }}
