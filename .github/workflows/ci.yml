@@ -16,6 +16,10 @@ jobs:
         with:
           crystal: latest
 
+      - name: Install dependencies
+        run: |
+          apt install libsodium-dev
+
       - name: Download source
         uses: actions/checkout@v2
 
@@ -34,4 +38,5 @@ jobs:
         run: bin/ameba
 
       - name: Build
-        run: crystal build --progress --time --stats src/discord-music.cr
+        run: |
+          crystal build --progress --time --stats src/discord-music.cr
