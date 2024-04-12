@@ -46,4 +46,4 @@ jobs:
         with:
           artifacts: discord-music
           makeLatest: true
-          commit: main
+          tag: ${{ github.ref_name }}
