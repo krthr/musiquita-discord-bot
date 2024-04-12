@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt install libsodium-dev
+          apt install libsodium-dev libopus-dev
 
       - name: Download source
         uses: actions/checkout@v2
