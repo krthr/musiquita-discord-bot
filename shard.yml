@@ -1,4 +1,5 @@
 name: discord-music
+version: 0.1.0
 
 authors:
   - Wilson <wtovaragudelo@gmail.com>
@@ -27,4 +28,4 @@ dependencies:
 
   opus:
     github: krthr/opus
-    branch: main
+    version: 0.1.0
