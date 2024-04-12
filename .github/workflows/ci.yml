@@ -32,3 +32,6 @@ jobs:
 
       - name: Run ameba linter
         run: bin/ameba
+
+      - name: Build
+        run: crystal build --progress --time --stats src/discord-music.cr
