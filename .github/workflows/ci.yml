@@ -46,3 +46,4 @@ jobs:
         with:
           artifacts: discord-music
           makeLatest: true
+          commit: main
