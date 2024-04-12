@@ -119,6 +119,9 @@ client.on_message_create do |payload|
     end
 
     input_file.close
+    input_file.delete
+
+    GC.collect
   end
 end
 
