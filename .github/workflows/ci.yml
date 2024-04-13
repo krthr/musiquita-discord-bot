@@ -18,7 +18,7 @@ jobs:
         id: generate-version
         uses: josStorer/get-current-time@v2
         with:
-          format: 0.0.YYYYMMDD-HHmm
+          format: 0.0.YYYYMMDDHHmm
 
       - name: Install Crystal
         uses: oprypin/install-crystal@v1
