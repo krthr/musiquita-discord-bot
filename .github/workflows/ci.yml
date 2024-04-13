@@ -48,7 +48,7 @@ jobs:
 
       - name: Build
         run: |
-          crystal build --progress --time --stats src/discord-music.cr
+          crystal build --progress --time --stats --progress src/discord-music.cr
 
       - name: Release
         uses: ncipollo/release-action@v1
