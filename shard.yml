@@ -19,9 +19,6 @@ dependencies:
   kemal:
     github: kemalcr/kemal
 
-  ameba:
-    github: crystal-ameba/ameba
-
   discordcr:
     github: shardlab/discordcr
     branch: master
@@ -29,3 +26,7 @@ dependencies:
   opus:
     github: krthr/opus
     version: 0.1.0
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba

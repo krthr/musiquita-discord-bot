@@ -8,7 +8,18 @@ TODO: Write installation instructions here
 
 ## Usage
 
-TODO: Write usage instructions here
+
+```
+$ sudo apt update
+$ sudo apt install python3-pip ffmpeg libsodium-dev libopus-dev
+$ python3 -m pip install -U yt-dlp[default]
+```
+
+```
+$ wget https://github.com/krthr/musiquita-discord-bot/releases/latest/download/discord-music
+$ chmod +x discord-music
+$ ./discord-music
+```
 
 ## Development
 
