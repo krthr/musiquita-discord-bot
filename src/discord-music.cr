@@ -95,19 +95,21 @@ client.on_message_create do |payload|
 
     client.create_message(payload.channel_id, "Getting audio from video id=#{video_id}...")
 
-    Audio.download_video(video_id)
-    input_file = File.open("#{video_id}.mp3", "r")
+    downloaded_audio = Audio::YouTubeDownloader.download(video_id)
+
+    Log.info { downloaded_audio.size }
 
     client.create_message(payload.channel_id, "Generating raw file ...")
 
-    audio_data = IO::Memory.new
-    Audio.audio_to_raw(input_file, audio_data, sample_rate, channels)
+    raw_audio = Audio::FfmpegEncoder.encode(downloaded_audio)
+
+    Log.info { raw_audio.size }
 
     client.create_message(payload.channel_id, "Playing opus encoded file ...")
 
     buffer = Bytes.new(encoder.input_length, 0)
     Discord.every(20.milliseconds) do
-      real_length = audio_data.read(buffer)
+      real_length = raw_audio.read(buffer)
 
       if real_length.zero?
         Log.info { "No more data to send... Closing" }
@@ -117,9 +119,6 @@ client.on_message_create do |payload|
       opus_encoded_data = encoder.encode(buffer)
       voice_client.not_nil!.play_opus(opus_encoded_data)
     end
-
-    input_file.close
-    input_file.delete
 
     GC.collect
   end

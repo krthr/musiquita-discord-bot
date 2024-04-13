@@ -1,32 +1,36 @@
 module Audio
-  def self.download_video(video_id : String)
-    Log.info { "Downloading video with id=#{video_id} to file" }
+  class YouTubeDownloader
+    def self.download(video_id : String)
+      error = IO::Memory.new
+      output = IO::Memory.new
 
-    Process.run(
-      "yt-dlp -f ba -x --audio-format mp3 --no-progress -o #{video_id}.mp3 #{video_id}",
-      shell: true,
-      output: STDOUT,
-      error: STDOUT
-    )
+      Process.run(
+        "yt-dlp -f ba -x --audio-format mp3 -o - #{video_id}",
+        shell: true,
+        output: output,
+        error: error,
+      )
+
+      output.rewind
+      output
+    end
   end
 
-  def self.audio_to_raw(input : IO, output : IO, sample_rate : Int32, channels : Int32)
-    Log.info { "Converting audio to raw..." }
+  class FfmpegEncoder
+    def self.encode(input : IO) : IO
+      error = IO::Memory.new
+      output = IO::Memory.new
 
-    Process.run("ffmpeg",
-      ["-i", "pipe:0",
-       "-loglevel", "0",
-       "-f", "s16le",
-       "-ar", sample_rate.to_s,
-       "-ac", channels.to_s,
-       "pipe:1",
-      ],
-      shell: true,
-      input: input,
-      output: output,
-      error: STDOUT
-    )
+      Process.run(
+        "ffmpeg -i pipe:0 -loglevel verbose -f s16le -ar 48000 -ac 2 pipe:1",
+        shell: true,
+        input: input,
+        output: output,
+        error: error
+      )
 
-    output.rewind
+      output.rewind
+      output
+    end
   end
 end
