@@ -50,7 +50,8 @@ jobs:
         run: |
           crystal build --progress --time --stats --progress src/discord-music.cr
 
-      - name: Release
+      - if: github.ref == 'refs/heads/main'
+        name: Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: discord-music
