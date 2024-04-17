@@ -8,6 +8,10 @@ shards:
     git: https://github.com/sija/backtracer.cr.git
     version: 1.2.2
 
+  crest:
+    git: https://github.com/mamantoha/crest.git
+    version: 1.3.13
+
   discordcr:
     git: https://github.com/shardlab/discordcr.git
     version: 0.4.0+git.commit.0e03deb8ffa247814f2fec4e197cba7a62534f85
@@ -19,6 +23,14 @@ shards:
   exception_page:
     git: https://github.com/crystal-loot/exception_page.git
     version: 0.4.1
+
+  http-client-digest_auth:
+    git: https://github.com/mamantoha/http-client-digest_auth.git
+    version: 0.6.0
+
+  http_proxy:
+    git: https://github.com/mamantoha/http_proxy.git
+    version: 0.10.3
 
   kemal:
     git: https://github.com/kemalcr/kemal.git
