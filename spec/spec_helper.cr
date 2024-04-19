@@ -1,2 +1,4 @@
 require "spec"
-require "../src/discord-music"
+
+require "../src/music/youtube/api"
+require "../src/music/youtube/downloader"

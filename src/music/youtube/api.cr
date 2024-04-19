@@ -1,5 +1,6 @@
 require "crest"
 require "json"
+require "log"
 
 module Music::Audio::Youtube
   class Api
